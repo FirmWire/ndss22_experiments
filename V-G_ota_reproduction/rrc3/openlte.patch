@@ -1,0 +1,143 @@
+commit f845bacb918b093c2f31502f8b559adeb7f067bb
+Author: mariusmue <m.muench@vu.nl>
+Date:   Mon May 31 23:53:40 2021 +0200
+
+    reduced openlte patch
+
+diff --git a/LTE_fdd_enodeb/src/LTE_fdd_enb_rrc.cc b/LTE_fdd_enodeb/src/LTE_fdd_enb_rrc.cc
+index c93d324..b4b6d36 100644
+--- a/LTE_fdd_enodeb/src/LTE_fdd_enb_rrc.cc
++++ b/LTE_fdd_enodeb/src/LTE_fdd_enb_rrc.cc
+@@ -659,6 +659,9 @@ void LTE_fdd_enb_rrc::parse_ul_dcch_message(LIBLTE_BIT_MSG_STRUCT *msg,
+     case LIBLTE_RRC_UL_DCCH_MSG_TYPE_RRC_CON_SETUP_COMPLETE:
+         rb->set_rrc_state(LTE_FDD_ENB_RRC_STATE_RRC_CONNECTED);
+ 
++	send_rrc_con_reconfig(user, rb, NULL);
++
++	/*
+         // Queue the NAS message for MME
+         rb->queue_mme_nas_msg(&rb->ul_dcch_msg.msg.rrc_con_setup_complete.dedicated_info_nas);
+ 
+@@ -669,6 +672,7 @@ void LTE_fdd_enb_rrc::parse_ul_dcch_message(LIBLTE_BIT_MSG_STRUCT *msg,
+                           LTE_FDD_ENB_DEST_LAYER_MME,
+                           (LTE_FDD_ENB_MESSAGE_UNION *)&nas_msg_ready,
+                           sizeof(LTE_FDD_ENB_MME_NAS_MSG_READY_MSG_STRUCT));
++	*/
+         break;
+     case LIBLTE_RRC_UL_DCCH_MSG_TYPE_UL_INFO_TRANSFER:
+         if(LIBLTE_RRC_UL_INFORMATION_TRANSFER_TYPE_NAS == rb->ul_dcch_msg.msg.ul_info_transfer.dedicated_info_type)
+diff --git a/liblte/src/liblte_rrc.cc b/liblte/src/liblte_rrc.cc
+index 1c82d4f..ff559bf 100644
+--- a/liblte/src/liblte_rrc.cc
++++ b/liblte/src/liblte_rrc.cc
+@@ -12145,9 +12145,102 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_rrc_connection_reconfiguration_msg(LIBLTE_RRC_
+     if(con_reconfig != NULL &&
+        msg          != NULL)
+     {
++
++liblte_value_2_bits(0x20, &msg_ptr, 3);
++liblte_value_2_bits(0x17, &msg_ptr, 8);
++liblte_value_2_bits(0x80, &msg_ptr, 8);
++liblte_value_2_bits(0x00, &msg_ptr, 8);
++liblte_value_2_bits(0x00, &msg_ptr, 8);
++liblte_value_2_bits(0x00, &msg_ptr, 8);
++liblte_value_2_bits(0x10, &msg_ptr, 8);
++liblte_value_2_bits(0x9A, &msg_ptr, 8);
++liblte_value_2_bits(0x80, &msg_ptr, 8);
++liblte_value_2_bits(0xFE, &msg_ptr, 8);
++liblte_value_2_bits(0x02, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0xD2, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x4D, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x00, &msg_ptr, 8);
++liblte_value_2_bits(0x10, &msg_ptr, 8);
++liblte_value_2_bits(0x9A, &msg_ptr, 8);
++liblte_value_2_bits(0x80, &msg_ptr, 8);
++liblte_value_2_bits(0xFE, &msg_ptr, 8);
++liblte_value_2_bits(0x02, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0xD2, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x4F, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x02, &msg_ptr, 8);
++liblte_value_2_bits(0x02, &msg_ptr, 8);
++liblte_value_2_bits(0x02, &msg_ptr, 8);
++liblte_value_2_bits(0x26, &msg_ptr, 8);
++liblte_value_2_bits(0x19, &msg_ptr, 8);
++liblte_value_2_bits(0x02, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x17, &msg_ptr, 8);
++liblte_value_2_bits(0x80, &msg_ptr, 8);
++liblte_value_2_bits(0x00, &msg_ptr, 8);
++liblte_value_2_bits(0x00, &msg_ptr, 8);
++liblte_value_2_bits(0x00, &msg_ptr, 8);
++liblte_value_2_bits(0x10, &msg_ptr, 8);
++liblte_value_2_bits(0x9A, &msg_ptr, 8);
++liblte_value_2_bits(0x80, &msg_ptr, 8);
++liblte_value_2_bits(0xFE, &msg_ptr, 8);
++liblte_value_2_bits(0xEB, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x73, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0xD2, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x52, &msg_ptr, 8);
++liblte_value_2_bits(0x00, &msg_ptr, 8);
++liblte_value_2_bits(0x10, &msg_ptr, 8);
++liblte_value_2_bits(0x02, &msg_ptr, 8);
++liblte_value_2_bits(0x02, &msg_ptr, 8);
++liblte_value_2_bits(0x62, &msg_ptr, 8);
++liblte_value_2_bits(0x01, &msg_ptr, 8);
++liblte_value_2_bits(0x03, &msg_ptr, 8);
++liblte_value_2_bits(0xE8, &msg_ptr, 8);
++liblte_value_2_bits(0x80, &msg_ptr, 8);
++liblte_value_2_bits(0x00, &msg_ptr, 8);
++liblte_value_2_bits(0x01, &msg_ptr, 8);
++liblte_value_2_bits(0xF7, &msg_ptr, 8);
++liblte_value_2_bits(0xFF, &msg_ptr, 8);
++liblte_value_2_bits(0xF3, &msg_ptr, 8);
++liblte_value_2_bits(0xEA, &msg_ptr, 8);
++liblte_value_2_bits(0x01, &msg_ptr, 8);
++liblte_value_2_bits(0xA7, &msg_ptr, 8);
++liblte_value_2_bits(0x18, &msg_ptr, 8);
++liblte_value_2_bits(0x18, &msg_ptr, 8);
++liblte_value_2_bits(0xFF, &msg_ptr, 8);
++liblte_value_2_bits(0xFF, &msg_ptr, 8);
++liblte_value_2_bits(0x00, &msg_ptr, 8);
++liblte_value_2_bits(0x00, &msg_ptr, 8);
++liblte_value_2_bits(0x02, &msg_ptr, 8);
++
++
++#if 0
+         // RRC Transaction ID
+         liblte_rrc_pack_rrc_transaction_identifier_ie(con_reconfig->rrc_transaction_id, &msg_ptr);
+ 
++
+         // Extension choice
+         liblte_value_2_bits(0, &msg_ptr, 1);
+ 
+@@ -12231,6 +12324,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_rrc_connection_reconfiguration_msg(LIBLTE_RRC_
+                 }
+             }
+         }
++#endif
+ 
+         // Fill in the number of bits used
+         msg->N_bits = msg_ptr - msg->msg;

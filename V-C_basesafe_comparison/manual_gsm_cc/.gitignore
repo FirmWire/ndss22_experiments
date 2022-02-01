@@ -1,0 +1,6 @@
+target
+Cargo.lock
+modem.bin
+modem.bin.lz4
+modem_debug.bin.lz4
+*.log

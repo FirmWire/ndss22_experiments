@@ -1,0 +1,53 @@
+diff --git a/shannon/memory_patterns.py b/shannon/memory_patterns.py
+index 41b7b04..4df47f6 100644
+--- a/shannon/memory_patterns.py
++++ b/shannon/memory_patterns.py
+@@ -33,7 +33,8 @@ DYNAMIC_SYMBOLS = {
+         "pattern" : "70 b5 05 46 ???????? ?? 48 ?? 24",
+     },
+     "pal_MemAlloc" : {
+-        "pattern" : "2d e9 f0 4f  0d 00  83 b0  99 46  92 46  80 46",
++        "pattern" : ["2d e9 f0 4f  0d 00  83 b0  99 46  92 46  80 46",
++                     "2d e9 ff 4f  4f f0  00 05  0e 00  83 b0  9a 46"],
+         "post_lookup" : shannon.offset.fixup_bios_symbol,
+     },
+     "pal_MsgSendTo" : {
+@@ -49,7 +50,8 @@ DYNAMIC_SYMBOLS = {
+         # 30 b5 04 46 85 b0 df 4b 40 f2 02 30 00 22 00 90 11 46 01 a8 0e f1 54 ee dd f8 04 c0 bc f1 00 0f 1c d0 00 25 01 21 03 ab 2a 46 0c f1 38 00 00 95 65 f4 1a f1 01 98 29 46 8b f1 a8 ed 01 98 01 22 00 23 11 46 00 94 5b f1 58 ed 01 98 8b f1 2e ec cd 49 40 f2 13 32 01 98 8b f1 a0 ed f0 f4 a1 f0 00 28 02 d0 02 a8 ff f7 1a fe 05 b0 30 bd
+     },
+     "log_printf" : {
+-        "pattern" : "0fb4 2de9f047 ???? ??98 d0e90060 c0f34815",
++        "pattern" : "0fb4 2de9f0?? ???? ??98 d0e900?? ??f3????",
++                 #   0fb4 2de9f0?? 8bb0 1498 d0e900?? ??f3????
+         "required" : True,
+     },
+     # log_printf_debug
+diff --git a/shannon/offset.py b/shannon/offset.py
+index f24cee3..7d3ecf1 100644
+--- a/shannon/offset.py
++++ b/shannon/offset.py
+@@ -287,7 +287,7 @@ def find_task_table(modem_file):
+ 
+ def find_lterrc_int_mob_cmd_ho_from_irat_msgid(modem_file):
+     bp = BinaryPattern("lte_rrc_int_mob_cmd_ho_from_irat_msgid", offset=0x12)
+-    bp.from_hex("?? ?? 14 ?? ?? d0 ?? ?? ?? d0 ?? ?? ?? d0 ?? f5 43 ?? ?? ?? ?? d0 01 20")
++    bp.from_hex("?? ?? 14 ?? ?? d0 ?? ?? ?? d0 ?? ?? ?? d0 ?? f5 43 ?? ?? ?? ?? d0 ?* 01 20")
+ 
+     main_toc = modem_file.get_section("MAIN")
+     off = bp.find(main_toc.data)[0]
+diff --git a/shannon/soc/__init__.py b/shannon/soc/__init__.py
+index 062211d..dc28a90 100644
+--- a/shannon/soc/__init__.py
++++ b/shannon/soc/__init__.py
+@@ -176,7 +176,10 @@ class S335AP(ShannonSOC):
+         super().__init__(date)
+ 
+         dsp_load_addr = dsp_base_search(main_section)
+-        self.peripherals += [SOCPeripheral(DSPPeripheral, dsp_load_addr, 0x100, name="DSPPeripheral", sync=[125, 255])]
++        if date < 20180601:
++            self.peripherals += [SOCPeripheral(DSPPeripheral, dsp_load_addr, 0x100, name="DSPPeripheral", sync=[118, 252])]
++        else:
++            self.peripherals += [SOCPeripheral(DSPPeripheral, dsp_load_addr, 0x100, name="DSPPeripheral", sync=[125, 255])]
+ 
+ def find_soc(name):
+     return SOC_BY_NAME.get(name)

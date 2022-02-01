@@ -1,0 +1,131 @@
+commit aa1a15985872eba61204f5f0f9f08f6794170c02
+Author: Grant Hernandez <grant.h.hernandez@gmail.com>
+Date:   Fri Sep 17 11:15:52 2021 -0400
+
+    S335AP support and change PatternDB alignment directive
+
+diff --git a/hw/ClkPeripheral.py b/hw/ClkPeripheral.py
+index fb7aed9..ca9e2f2 100644
+--- a/hw/ClkPeripheral.py
++++ b/hw/ClkPeripheral.py
+@@ -132,7 +134,9 @@ class S355APClkPeripheral(LoggingPeripheral):
+         elif offset == 0x2028:
+             value = self.next_val
+         elif offset == 0x202c:
+-            value = self.val_202c
++            value = self.cyclic_bit(pattern=0xfffff)
+         elif offset == 0x2070:
+             value = 0x40000000
+         elif offset == 0x2078:
+@@ -141,7 +145,7 @@ class S355APClkPeripheral(LoggingPeripheral):
+             value = 0x40000000 | 0x80000000
+         elif offset == 0x2090:
+             # 0x1000 signifies that the clk is on
+-            value = 0x20000000 | 0x1e000000 | 0x1000
++            value = 0x20000000 | 0x40000000 | 0x1e000000 | 0x1000 
+ 
+             offset_name = "MPLL_CLK"
+             self.log_read(value, size, offset_name)
+
+diff --git a/shannon/memory_patterns.py b/shannon/memory_patterns.py
+index ebc1895..41b7b04 100644
+--- a/shannon/memory_patterns.py
++++ b/shannon/memory_patterns.py
+@@ -12,8 +12,12 @@ DYNAMIC_SYMBOLS = {
+         "required" : True,
+     },
+     "boot_setup_memory" : {
+-        "pattern" : "00008004 200c0000",
++        "pattern" : [
++            "00008004 200c0000",
++            "00000004 ????0100", # S335
++        ],
+         "offset" : -0x14,
++        "align": 4,
+         "post_lookup" : shannon.offset.parse_memory_table,
+         "required" : True,
+     },
+@@ -22,6 +26,8 @@ DYNAMIC_SYMBOLS = {
+             "?? 49 00 22 ?? 48 ?? a3 ?? ?? ?? ?? 80 21 68 46 ?? ?? ?? ?? 10 22 20 a9 68 46 ?? ?? ?? ??"
+         ],
+         "offset_end" : 0x0,
++        "for": ["S5000AP"],
++        "required": True
+     },
+     "OS_fatal_error" : {
+         "pattern" : "70 b5 05 46 ???????? ?? 48 ?? 24",
+@@ -84,11 +90,15 @@ DYNAMIC_SYMBOLS = {
+         "lookup" : shannon.offset.find_queue_table
+     },
+     "QUIRK_SXXXAP_DVFS" : {
+-        "pattern": "??f8???? 00f01f01 ??48 d0 f8 ????  c0 f3 ????  ????????  ????  00 ?? ?* ??f1???? ??82 ??eb??11 0988",
+-        "offset_end" : -0x6,
+-        "for": ["S355AP", "S360AP"],
++        "pattern": [
++            "??f8???? 00f01f01 ??48 d0 f8 ????  c0 f3 ????  ????????  ????  00 ?? ?* ??f1???? ??82 ??eb??11 0988",
++            "????  00 ?? ?* ??f1???? ??82 ??eb??11 0988", # S335AP alternate
++        ],
++        "offset_end" : 0x0,
++        "for": ["S335AP", "S355AP", "S360AP"],
+         # Thumb alignment
+         "align": 2,
++        "required": True
+     },
+     "SYM_LTERRC_INT_MOB_CMD_HO_FROM_IRAT_MSG_ID" : {
+         "lookup" : shannon.offset.find_lterrc_int_mob_cmd_ho_from_irat_msgid
+ 
+diff --git a/shannon/soc/__init__.py b/shannon/soc/__init__.py
+index 1d4861d..062211d 100644
+--- a/shannon/soc/__init__.py
++++ b/shannon/soc/__init__.py
+@@ -176,6 +175,9 @@ class S335AP(ShannonSOC):
+     def __init__(self, date, main_section):
+         super().__init__(date)
+ 
++        dsp_load_addr = dsp_base_search(main_section)
++        self.peripherals += [SOCPeripheral(DSPPeripheral, dsp_load_addr, 0x100, name="DSPPeripheral", sync=[125, 255])]
++
+ def find_soc(name):
+     return SOC_BY_NAME.get(name)
+ 
+diff --git a/shannon_emu.py b/shannon_emu.py
+index 9d6f257..78ff3bd 100755
+--- a/shannon_emu.py
++++ b/shannon_emu.py
+@@ -1086,13 +1086,14 @@ r12: %08x     cpsr: %08x""" % (
+             #self.qemu.wm(0x405489ae, 2, b"\x70\x47", raw=True)
+ 
+-        elif self.modem_soc.name == "S355AP" or self.modem_soc.name == "S360AP":
++        elif self.modem_soc.name in ["S355AP", "S360AP"]:
+             def ff2(self):
+                 # Dynamic Voltage and Frequency Scaling!
+                 # This is the minimum amount of mhz (?) in the DVFS table
+                 # We need to modify clkperipheral to have this value be generated naturally
+                 # 0x0215  0x0100  0xffff  0x0707
+-                self.qemu.regs.r0 = 0x215 # 533MHz
++                self.qemu.regs.r0 = self.qemu.regs.r1
+                 self.qemu.cont(blocking=False)
+ 
+             #self.set_breakpoint(0x407192ba, ff2)
+@@ -1105,6 +1106,21 @@ r12: %08x     cpsr: %08x""" % (
+             disable_list += ["Acpm"] # timeout twice OS_fatal_error
+             disable_list += ["L1C"] # hang for S360
+ 
++        elif self.modem_soc.name == "S335AP":
++            def ff2(self):
++                self.qemu.regs.r0 = self.qemu.regs.r1
++                self.qemu.cont(blocking=False)
++
++            # "error - Unkown Freq value in hw_ClkFindSysClkCofigInfoIndex()"
++            self.set_breakpoint(self.symbol_table.lookup('QUIRK_SXXXAP_DVFS').address, ff2)
++
++            # [ERROR] FATAL ERROR (L1C): from 0x4071e7dd [L1_Exit.c:173 - DBG_Point : file:L1AUDSQ, line:147,[P1:0x00000000,P2:0x00000000,P2:0x00000000], reason:Dev Assert SqIniAllocDspBuffer Fail [0 : 0 : 0]]
++            disable_list += ["L1C"] # see above
++
++            disable_list += ["InitPacketHandler"] # similar to SHM on S5000
++            disable_list += ["PacketHandler"]
++            disable_list += ["SIM"]
++
+         elif self.modem_soc.name == "S337AP":
+             # This is a hack to prevent a memclr of the SHM region
+             # The clear is really slow because SHM is via remote memory

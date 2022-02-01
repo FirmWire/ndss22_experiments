@@ -1,0 +1,3 @@
+[submodule "V-C_basesafe_comparison/AFLplusplus"]
+	path = V-C_basesafe_comparison/AFLplusplus
+	url = https://github.com/AFLplusplus/AFLplusplus.git

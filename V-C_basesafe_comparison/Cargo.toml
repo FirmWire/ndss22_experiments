@@ -1,0 +1,17 @@
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+debug = true
+
+[workspace]
+members = [
+    "firmwire_basesafe",
+    "manual_gsm_cc",
+]
+default-members = [
+    "firmwire_basesafe",
+    "manual_gsm_cc",
+]
+exclude = [
+]
